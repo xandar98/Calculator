@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Calculator</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .calculator {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 25px;
+        padding: 30px;
+        box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        width: 100%;
+        max-width: 350px;
+        position: relative;
+    }
+
+    .calculator::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg, #00f5ff, #ff00ff, #00ff00, #ffff00);
+        border-radius: 25px;
+        z-index: -1;
+        animation: borderGlow 3s linear infinite;
+    }
+
+    @keyframes borderGlow {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .display {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(0, 245, 255, 0.3);
+        border-radius: 15px;
+        padding: 20px 15px;
+        margin-bottom: 25px;
+        text-align: right;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .display::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.2), transparent);
+        animation: scan 2s infinite;
+    }
+
+    @keyframes scan {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+
+    .display-text {
+        color: #00f5ff;
+        font-size: 2.5rem;
+        font-weight: 300;
+        text-shadow: 0 0 10px #00f5ff;
+        min-height: 1.2em;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .buttons {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 15px;
+        padding: 20px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: all 0.5s ease;
+    }
+
+    .btn:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-operator {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+        color: white;
+        box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+    }
+
+    .btn-operator:hover {
+        box-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+    }
+
+    .btn-function {
+        background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        color: white;
+        box-shadow: 0 0 20px rgba(78, 205, 196, 0.3);
+    }
+
+    .btn-function:hover {
+        box-shadow: 0 0 30px rgba(78, 205, 196, 0.5);
+    }
+
+    .btn-equals {
+        background: linear-gradient(135deg, #45b7d1, #96c93d);
+        color: white;
+        box-shadow: 0 0 20px rgba(69, 183, 209, 0.3);
+    }
+
+    .btn-equals:hover {
+        box-shadow: 0 0 30px rgba(69, 183, 209, 0.5);
+    }
+
+    .btn-zero {
+        grid-column: span 2;
+    }
+
+    .btn span {
+        position: relative;
+        z-index: 1;
+    }
+
+    .particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    .particle {
+        position: absolute;
+        background: #00f5ff;
+        border-radius: 50%;
+        animation: float 6s infinite ease-in-out;
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 0;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-100vh) rotate(180deg);
+            opacity: 0;
+        }
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .header h1 {
+        color: #00f5ff;
+        font-size: 1.5rem;
+        font-weight: 300;
+        text-shadow: 0 0 20px #00f5ff;
+        letter-spacing: 2px;
+    }
+
+    .status-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #00ff00;
+        box-shadow: 0 0 10px #00ff00;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    .user-info {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: #00f5ff;
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+
+    .share-btn {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 245, 255, 0.1);
+        border: 1px solid rgba(0, 245, 255, 0.3);
+        border-radius: 20px;
+        padding: 8px 15px;
+        color: #00f5ff;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .share-btn:hover {
+        background: rgba(0, 245, 255, 0.2);
+        box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+    }
+
+    @media (max-width: 400px) {
+        .calculator {
+            padding: 20px;
+            margin: 10px;
+        }
+        
+        .display-text {
+            font-size: 2rem;
+        }
+        
+        .btn {
+            padding: 15px;
+            font-size: 1rem;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+```
+<div class="calculator">
+    <div class="status-indicator" id="statusIndicator"></div>
+    <div class="user-info" id="userInfo"></div>
+    <div class="share-btn" id="shareBtn">Share 📤</div>
+    
+    <div class="header">
+        <h1>QUANTUM CALC</h1>
+    </div>
+    
+    <div class="display">
+        <div class="display-text" id="display">0</div>
+    </div>
+    
+    <div class="buttons">
+        <button class="btn btn-function" data-action="clear"><span>C</span></button>
+        <button class="btn btn-function" data-action="delete"><span>⌫</span></button>
+        <button class="btn btn-operator" data-action="operation" data-operation="%"><span>%</span></button>
+        <button class="btn btn-operator" data-action="operation" data-operation="/"><span>÷</span></button>
+        
+        <button class="btn" data-action="number" data-number="7"><span>7</span></button>
+        <button class="btn" data-action="number" data-number="8"><span>8</span></button>
+        <button class="btn" data-action="number" data-number="9"><span>9</span></button>
+        <button class="btn btn-operator" data-action="operation" data-operation="*"><span>×</span></button>
+        
+        <button class="btn" data-action="number" data-number="4"><span>4</span></button>
+        <button class="btn" data-action="number" data-number="5"><span>5</span></button>
+        <button class="btn" data-action="number" data-number="6"><span>6</span></button>
+        <button class="btn btn-operator" data-action="operation" data-operation="-"><span>−</span></button>
+        
+        <button class="btn" data-action="number" data-number="1"><span>1</span></button>
+        <button class="btn" data-action="number" data-number="2"><span>2</span></button>
+        <button class="btn" data-action="number" data-number="3"><span>3</span></button>
+        <button class="btn btn-operator" data-action="operation" data-operation="+"><span>+</span></button>
+        
+        <button class="btn btn-zero" data-action="number" data-number="0"><span>0</span></button>
+        <button class="btn" data-action="decimal"><span>.</span></button>
+        <button class="btn btn-equals" data-action="equals"><span>=</span></button>
+    </div>
+</div>
+
+<script>
+    class QuantumCalculator {
+        constructor() {
+            // REPLACE 'YOUR_BOT_TOKEN_HERE' WITH YOUR ACTUAL BOT TOKEN
+            this.BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE';
+            this.BOT_API_URL = `https://api.telegram.org/bot${this.BOT_TOKEN}`;
+            
+            this.display = document.getElementById('display');
+            this.statusIndicator = document.getElementById('statusIndicator');
+            this.userInfo = document.getElementById('userInfo');
+            this.shareBtn = document.getElementById('shareBtn');
+            
+            this.currentInput = '0';
+            this.operator = null;
+            this.waitingForOperand = false;
+            this.previousInput = null;
+            this.calculationHistory = [];
+            
+            this.tg = null;
+            this.user = null;
+            this.chatId = null;
+            
+            this.initializeEventListeners();
+            this.initializeTelegram();
+            this.createParticles();
+        }
+        
+        initializeTelegram() {
+            try {
+                if (window.Telegram?.WebApp) {
+                    this.tg = window.Telegram.WebApp;
+                    this.tg.ready();
+                    this.tg.expand();
+                    
+                    // Get user info
+                    this.user = this.tg.initDataUnsafe?.user;
+                    this.chatId = this.tg.initDataUnsafe?.user?.id;
+                    
+                    if (this.user) {
+                        this.userInfo.textContent = `👋 ${this.user.first_name}`;
+                        this.statusIndicator.style.background = '#00ff00';
+                        this.sendWelcomeMessage();
+                    } else {
+                        this.statusIndicator.style.background = '#ffaa00';
+                        this.userInfo.textContent = 'Guest Mode';
+                    }
+                    
+                    // Apply Telegram theme
+                    this.applyTelegramTheme();
+                    
+                    // Setup main button
+                    this.setupMainButton();
+                    
+                    // Setup back button
+                    this.tg.BackButton.onClick(() => {
+                        this.tg.close();
+                    });
+                    
+                } else {
+                    console.log('Running outside Telegram');
+                    this.statusIndicator.style.background = '#ff6b6b';
+                    this.userInfo.textContent = 'Web Mode';
+                }
+            } catch (error) {
+                console.error('Telegram initialization error:', error);
+                this.statusIndicator.style.background = '#ff6b6b';
+            }
+        }
+        
+        applyTelegramTheme() {
+            if (this.tg?.themeParams) {
+                const theme = this.tg.themeParams;
+                
+                // Apply theme colors if available
+                if (theme.bg_color) {
+                    document.body.style.background = theme.bg_color;
+                }
+                
+                if (theme.text_color) {
+                    document.documentElement.style.setProperty('--text-color', theme.text_color);
+                }
+                
+                // Set header color
+                this.tg.setHeaderColor(theme.secondary_bg_color || '#1a1a2e');
+            }
+        }
+        
+        setupMainButton() {
+            if (this.tg?.MainButton) {
+                this.tg.MainButton.setText('Share Result 📤');
+                this.tg.MainButton.onClick(() => {
+                    this.shareResult();
+                });
+            }
+        }
+        
+        async sendWelcomeMessage() {
+            if (!this.chatId || this.BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') return;
+            
+            try {
+                const message = `🧮 *Quantum Calculator Activated!*\n\n` +
+                              `Welcome ${this.user.first_name}! 🚀\n` +
+                              `Your futuristic calculator is ready to compute!`;
+                
+                await this.sendTelegramMessage(message);
+            } catch (error) {
+                console.error('Error sending welcome message:', error);
+            }
+        }
+        
+        async sendTelegramMessage(text, parseMode = 'Markdown') {
+            if (!this.chatId || this.BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') return;
+            
+            try {
+                const response = await fetch(`${this.BOT_API_URL}/sendMessage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: this.chatId,
+                        text: text,
+                        parse_mode: parseMode
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error sending message:', error);
+                throw error;
+            }
+        }
+        
+        initializeEventListeners() {
+            document.addEventListener('click', (e) => {
+                if (e.target.matches('button')) {
+                    const action = e.target.dataset.action;
+                    
+                    switch (action) {
+                        case 'number':
+                            this.inputNumber(e.target.dataset.number);
+                            break;
+                        case 'decimal':
+                            this.inputDecimal();
+                            break;
+                        case 'clear':
+                            this.clear();
+                            break;
+                        case 'delete':
+                            this.delete();
+                            break;
+                        case 'operation':
+                            this.inputOperation(e.target.dataset.operation);
+                            break;
+                        case 'equals':
+                            this.calculate();
+                            break;
+                    }
+                    
+                    this.updateDisplay();
+                    this.addClickEffect(e.target);
+                }
+            });
+            
+            // Share button
+            this.shareBtn.addEventListener('click', () => {
+                this.shareResult();
+            });
+            
+            // Keyboard support
+            document.addEventListener('keydown', (e) => {
+                if (e.key >= '0' && e.key <= '9') {
+                    this.inputNumber(e.key);
+                } else if (e.key === '.') {
+                    this.inputDecimal();
+                } else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+                    this.inputOperation(e.key);
+                } else if (e.key === 'Enter' || e.key === '=') {
+                    this.calculate();
+                } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+                    this.clear();
+                } else if (e.key === 'Backspace') {
+                    this.delete();
+                }
+                
+                this.updateDisplay();
+            });
+        }
+        
+        inputNumber(num) {
+            if (this.waitingForOperand) {
+                this.currentInput = num;
+                this.waitingForOperand = false;
+            } else {
+                this.currentInput = this.currentInput === '0' ? num : this.currentInput + num;
+            }
+        }
+        
+        inputDecimal() {
+            if (this.waitingForOperand) {
+                this.currentInput = '0.';
+                this.waitingForOperand = false;
+            } else if (this.currentInput.indexOf('.') === -1) {
+                this.currentInput += '.';
+            }
+        }
+        
+        clear() {
+            this.currentInput = '0';
+            this.operator = null;
+            this.waitingForOperand = false;
+            this.previousInput = null;
+            
+            // Update main button
+            if (this.tg?.MainButton) {
+                this.tg.MainButton.hide();
+            }
+        }
+        
+        delete() {
+            if (this.currentInput.length > 1) {
+                this.currentInput = this.currentInput.slice(0, -1);
+            } else {
+                this.currentInput = '0';
+            }
+        }
+        
+        inputOperation(nextOperator) {
+            const inputValue = parseFloat(this.currentInput);
+            
+            if (this.previousInput === null) {
+                this.previousInput = inputValue;
+            } else if (this.operator) {
+                const currentValue = this.previousInput || 0;
+                const newValue = this.performCalculation();
+                
+                this.currentInput = String(newValue);
+                this.previousInput = newValue;
+            }
+            
+            this.waitingForOperand = true;
+            this.operator = nextOperator;
+        }
+        
+        calculate() {
+            const inputValue = parseFloat(this.currentInput);
+            
+            if (this.previousInput !== null && this.operator) {
+                const calculation = `${this.previousInput} ${this.operator} ${inputValue}`;
+                const newValue = this.performCalculation();
+                
+                // Save to history
+                this.calculationHistory.push({
+                    calculation: calculation,
+                    result: newValue,
+                    timestamp: new Date().toISOString()
+                });
+                
+                this.currentInput = String(newValue);
+                this.previousInput = null;
+                this.operator = null;
+                this.waitingForOperand = true;
+                
+                // Show main button for sharing
+                if (this.tg?.MainButton) {
+                    this.tg.MainButton.show();
+                }
+                
+                // Send calculation to bot if significant result
+                if (Math.abs(newValue) > 1000 || this.calculationHistory.length % 5 === 0) {
+                    this.sendCalculationUpdate(calculation, newValue);
+                }
+            }
+        }
+        
+        performCalculation() {
+            const prev = this.previousInput;
+            const current = parseFloat(this.currentInput);
+            
+            switch (this.operator) {
+                case '+':
+                    return prev + current;
+                case '-':
+                    return prev - current;
+                case '*':
+                    return prev * current;
+                case '/':
+                    return current !== 0 ? prev / current : 0;
+                case '%':
+                    return prev % current;
+                default:
+                    return current;
+            }
+        }
+        
+        async sendCalculationUpdate(calculation, result) {
+            if (!this.chatId || this.BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') return;
+            
+            try {
+                const message = `🧮 *Calculation Update*\n\n` +
+                              `📊 ${calculation} = *${result}*\n` +
+                              `👤 User: ${this.user?.first_name || 'Unknown'}\n` +
+                              `⏰ ${new Date().toLocaleTimeString()}`;
+                
+                await this.sendTelegramMessage(message);
+            } catch (error) {
+                console.error('Error sending calculation update:', error);
+            }
+        }
+        
+        async shareResult() {
+            const result = this.currentInput;
+            const lastCalculation = this.calculationHistory[this.calculationHistory.length - 1];
+            
+            if (this.tg) {
+                // Use Telegram Web App share
+                const shareText = lastCalculation 
+                    ? `🧮 Quantum Calculator Result:\n${lastCalculation.calculation} = ${result}`
+                    : `🧮 Current Result: ${result}`;
+                
+                if (this.tg.shareURL) {
+                    this.tg.shareURL(window.location.href, shareText);
+                } else {
+                    // Fallback: send to chat
+                    await this.sendTelegramMessage(`📤 *Shared Result*\n\n${shareText}`);
+                }
+            } else {
+                // Web fallback
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Quantum Calculator Result',
+                        text: `Result: ${result}`,
+                        url: window.location.href
+                    });
+                } else {
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(result);
+                    alert('Result copied to clipboard!');
+                }
+            }
+        }
+        
+        updateDisplay() {
+            const value = parseFloat(this.currentInput);
+            let formattedValue;
+            
+            if (isFinite(value)) {
+                // Format large numbers
+                if (Math.abs(value) >= 1e6) {
+                    formattedValue = value.toExponential(2);
+                } else {
+                    formattedValue = value.toLocaleString();
+                }
+            } else {
+                formattedValue = 'Error';
+            }
+            
+            this.display.textContent = formattedValue;
+        }
+        
+        addClickEffect(button) {
+            button.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                button.style.transform = '';
+            }, 100);
+            
+            // Haptic feedback for Telegram
+            if (this.tg?.HapticFeedback) {
+                this.tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+        
+        createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            
+            setInterval(() => {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = particle.style.height = Math.random() * 4 + 2 + 'px';
+                particle.style.animationDuration = Math.random() * 3 + 3 + 's';
+                particle.style.animationDelay = Math.random() * 2 + 's';
+                
+                particlesContainer.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.remove();
+                }, 6000);
+            }, 500);
+        }
+    }
+    
+    // Initialize calculator when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new QuantumCalculator();
+    });
+    
+    // Handle Telegram WebApp events
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.onEvent('mainButtonClicked', () => {
+            console.log('Main button clicked');
+        });
+        
+        window.Telegram.WebApp.onEvent('backButtonClicked', () => {
+            window.Telegram.WebApp.close();
+        });
+    }
+</script>
+```
+
+</body>
+</html>
